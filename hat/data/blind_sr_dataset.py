@@ -5,7 +5,12 @@ import utils.utils_image as util
 import os
 from utils import utils_blindsr as blindsr
 
+from basicsr.data.data_util import paths_from_lmdb, scandir
+from basicsr.utils import FileClient, imfrombytes
+from basicsr.utils.registry import DATASET_REGISTRY
 
+
+@DATASET_REGISTRY.register()
 class BlindSRDataset(data.Dataset):
     '''
     # -----------------------------------------
@@ -15,15 +20,30 @@ class BlindSRDataset(data.Dataset):
     def __init__(self, opt):
         super(BlindSRDataset, self).__init__()
         self.opt = opt
-        self.n_channels = opt['n_channels'] if opt['n_channels'] else 3
+        
+        self.n_channels = opt['in_chans'] if opt['in_chans'] else 3
         self.sf = opt['scale'] if opt['scale'] else 4
         self.shuffle_prob = opt['shuffle_prob'] if opt['shuffle_prob'] else 0.1
         self.use_sharp = opt['use_sharp'] if opt['use_sharp'] else False
         self.degradation_type = opt['degradation_type'] if opt['degradation_type'] else 'bsrgan'
-        self.lq_patchsize = self.opt['lq_patchsize'] if self.opt['lq_patchsize'] else 64
-        self.patch_size = self.opt['H_size'] if self.opt['H_size'] else self.lq_patchsize*self.sf
+        self.patch_size = self.opt['gt_size'] if self.opt['gt_size'] else 512
+        self.lq_patchsize = self.opt['gt_size'] // self.sf
 
-        self.paths_H = util.get_image_paths(opt['dataroot_H'])
+        self.gt_folder = opt['dataroot_gt']
+        
+        self.file_client = None
+        self.io_backend_opt = opt['io_backend']
+        if self.io_backend_opt['type'] == 'lmdb':
+            self.io_backend_opt['db_paths'] = [self.gt_folder]
+            self.io_backend_opt['client_keys'] = ['gt']
+            self.paths_H = paths_from_lmdb(self.gt_folder)
+        elif 'meta_info_file' in self.opt:
+            with open(self.opt['meta_info_file'], 'r') as fin:
+                self.paths_H = [os.path.join(self.gt_folder, line.split(' ')[0]) for line in fin]
+        else:
+            self.paths_H = sorted(list(scandir(self.gt_folder, full_path=True)))
+
+        # self.paths_H = util.get_image_paths(opt['dataroot_gt'])
         print(len(self.paths_H))
 
 #        for n, v in enumerate(self.paths_H):
@@ -33,14 +53,18 @@ class BlindSRDataset(data.Dataset):
         assert self.paths_H, 'Error: H path is empty.'
 
     def __getitem__(self, index):
-
         L_path = None
-
+        
         # ------------------------------------
         # get H image
         # ------------------------------------
+        if self.file_client is None:
+            self.file_client = FileClient(self.io_backend_opt.pop('type'), **self.io_backend_opt)
+
         H_path = self.paths_H[index]
-        img_H = util.imread_uint(H_path, self.n_channels)
+        # img_H = util.imread_uint(H_path, self.n_channels)
+        img_bytes = self.file_client.get(H_path, 'gt')
+        img_H = imfrombytes(img_bytes, float32=True)
         img_name, ext = os.path.splitext(os.path.basename(H_path))
         H, W, C = img_H.shape
 
@@ -86,7 +110,7 @@ class BlindSRDataset(data.Dataset):
         if L_path is None:
             L_path = H_path
 
-        return {'L': img_L, 'H': img_H, 'L_path': L_path, 'H_path': H_path}
+        return {'lq': img_L, 'gt': img_H, 'gt_path': H_path}
 
     def __len__(self):
         return len(self.paths_H)
