@@ -1,52 +1,58 @@
 # general settings
-name: train_HAT_SRx3_ImageNet_from_scratch
+name: blind-train_HAT-L_SRx4_ImageNet_from_scratch
 model_type: HATModel
-scale: 3
+scale: 4
 num_gpu: auto
-manual_seed: 0
+manual_seed: 36
 
 # dataset and data loader settings
 datasets:
   train:
     name: ImageNet
-    type: ImageNetPairedDataset
-    dataroot_gt: datasets/ImageNet/GT
-    meta_info_file: hat/data/meta_info/meta_info_ImageNet_GT.txt
+    type: BlindSRDataset
+    dataroot_gt: datasets/ImageNet/hr.lmdb
+    # meta_info_file: hat/data/meta_info/meta_info_ImageNet_GT.txt
     io_backend:
-      type: disk
+      type: lmdb
 
-    gt_size: 192
+    gt_size: 512
     use_hflip: true
     use_rot: true
 
     # data loader
     use_shuffle: true
-    num_worker_per_gpu: 6
+    num_worker_per_gpu: 8
     batch_size_per_gpu: 4
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
-  val_1:
-    name: Set5
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/Set5/GTmod3
-    dataroot_lq: ./datasets/Set5/LRbicx3
-    io_backend:
-      type: disk
+    # blind sr
+    shuffle_prob: 0.1
+    use_sharp: false
+    degradation_type: bsrgan
+    in_chans: 3
 
-  val_2:
-    name: Set14
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/Set14/GTmod3
-    dataroot_lq: ./datasets/Set14/LRbicx3
-    io_backend:
-      type: disk
+  # val_1:
+  #   name: Set5
+  #   type: PairedImageDataset
+  #   dataroot_gt: ./datasets/Set5/GTmod4
+  #   dataroot_lq: ./datasets/Set5/LRbicx4
+  #   io_backend:
+  #     type: disk
+
+  # val_2:
+  #   name: Set14
+  #   type: PairedImageDataset
+  #   dataroot_gt: ./datasets/Set14/GTmod4
+  #   dataroot_lq: ./datasets/Set14/LRbicx4
+  #   io_backend:
+  #     type: disk
 
   # val_3:
   #   name: Urban100
   #   type: PairedImageDataset
-  #   dataroot_gt: ./datasets/urban100/GTmod3
-  #   dataroot_lq: ./datasets/urban100/LRbicx3
+  #   dataroot_gt: ./datasets/urban100/GTmod4
+  #   dataroot_lq: ./datasets/urban100/LRbicx4
   #   io_backend:
   #     type: disk
 
@@ -54,7 +60,7 @@ datasets:
 # network structures
 network_g:
   type: HAT
-  upscale: 3
+  upscale: 4
   in_chans: 3
   img_size: 64
   window_size: 16
@@ -63,9 +69,9 @@ network_g:
   conv_scale: 0.01
   overlap_ratio: 0.5
   img_range: 1.
-  depths: [6, 6, 6, 6, 6, 6]
+  depths: [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
   embed_dim: 180
-  num_heads: [6, 6, 6, 6, 6, 6]
+  num_heads: [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]
   mlp_ratio: 2
   upsampler: 'pixelshuffle'
   resi_connection: '1conv'
@@ -105,17 +111,17 @@ val:
   save_img: false
   pbar: False
 
-  metrics:
-    psnr:
-      type: calculate_psnr
-      crop_border: 3
-      test_y_channel: true
-      better: higher  # the higher, the better. Default: higher
-    ssim:
-      type: calculate_ssim
-      crop_border: 3
-      test_y_channel: true
-      better: higher  # the higher, the better. Default: higher
+  # metrics:
+  #   psnr:
+  #     type: calculate_psnr
+  #     crop_border: 4
+  #     test_y_channel: true
+  #     better: higher  # the higher, the better. Default: higher
+  #   ssim:
+  #     type: calculate_ssim
+  #     crop_border: 4
+  #     test_y_channel: true
+  #     better: higher  # the higher, the better. Default: higher
 
 # logging settings
 logger:

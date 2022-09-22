@@ -10,8 +10,8 @@ datasets:
   train:
     name: Dacon
     type: PairedImageDataset
-    dataroot_gt: datasets/Dacon/train/hr_sub.lmdb
-    dataroot_lq: datasets/Dacon/train/lr_sub.lmdb
+    dataroot_gt: datasets/dacon/train/hr_sub.lmdb
+    dataroot_lq: datasets/dacon/train/lr_sub.lmdb
     io_backend:
       type: lmdb
 

@@ -1,5 +1,5 @@
 # general settings
-name: train_HAT-L_SRx4_finetune_from_ImageNet_pretrain_Dacon
+name: train_HAT-L_SRx4_finetune_from_ImageNet_pretrain_Dacon_GT512
 model_type: HATModel
 scale: 4
 num_gpu: auto
@@ -10,37 +10,21 @@ datasets:
   train:
     name: Dacon
     type: PairedImageDataset
-    dataroot_gt: datasets/Dacon/train/hr_sub.lmdb
-    dataroot_lq: datasets/Dacon/train/lr_sub.lmdb
+    dataroot_gt: datasets/dacon/train/hr.lmdb
+    dataroot_lq: datasets/dacon/train/lr.lmdb
     io_backend:
       type: lmdb
 
-    gt_size: 256
+    gt_size: 512
     use_hflip: true
     use_rot: true
 
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 6
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 1
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
-
-  val_1:
-    name: Set5
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/Set5/GTmod12
-    dataroot_lq: ./datasets/Set5/LRbicx4
-    io_backend:
-      type: disk
-
-  val_2:
-    name: Set14
-    type: PairedImageDataset
-    dataroot_gt: ./datasets/Set14/GTmod12
-    dataroot_lq: ./datasets/Set14/LRbicx4
-    io_backend:
-      type: disk
 
   # val_3:
   #   name: Urban100
@@ -96,7 +80,7 @@ train:
 
   # losses
   pixel_opt:
-    type: L1Loss
+    type: PSNRLoss
     loss_weight: 1.0
     reduction: mean
 
@@ -106,17 +90,17 @@ val:
   save_img: false
   pbar: False
 
-  metrics:
-    psnr:
-      type: calculate_psnr
-      crop_border: 4
-      test_y_channel: true
-      better: higher  # the higher, the better. Default: higher
-    ssim:
-      type: calculate_ssim
-      crop_border: 4
-      test_y_channel: true
-      better: higher  # the higher, the better. Default: higher
+  # metrics:
+  #   psnr:
+  #     type: calculate_psnr
+  #     crop_border: 4
+  #     test_y_channel: true
+  #     better: higher  # the higher, the better. Default: higher
+  #   ssim:
+  #     type: calculate_ssim
+  #     crop_border: 4
+  #     test_y_channel: true
+  #     better: higher  # the higher, the better. Default: higher
 
 # logging settings
 logger:
@@ -124,7 +108,7 @@ logger:
   save_checkpoint_freq: !!float 5e3
   use_tb_logger: true
   wandb:
-    project: Yangjae_ISR
+    project: ~ #Yangjae_ISR
     resume_id: ~
 
 # dist training settings
